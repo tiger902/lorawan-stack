@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"hash"
 	"math"
-	"reflect"
 	"sort"
 	"time"
 
@@ -88,15 +87,14 @@ func resetsFCnt(dev *ttnpb.EndDevice, defaults ttnpb.MACSettings) bool {
 }
 
 // transmissionNumber returns the number of the transmission up would represent if appended to ups.
-func transmissionNumber(up *ttnpb.UplinkMessage, ups ...*ttnpb.UplinkMessage) uint32 {
+func transmissionNumber(macPayload []byte, ups ...*ttnpb.UplinkMessage) uint32 {
 	nb := uint32(1)
 	for i := len(ups) - 1; i >= 0; i-- {
-		recent := ups[i]
-		if recent.Payload.MHDR == up.Payload.MHDR && reflect.DeepEqual(recent.Payload.GetMACPayload(), up.Payload.GetMACPayload()) {
-			nb++
-		} else {
+		up := ups[i]
+		if len(up.RawPayload) < 4 || !bytes.Equal(macPayload, up.RawPayload[:len(up.RawPayload)-4]) {
 			break
 		}
+		nb++
 	}
 	return nb
 }
@@ -212,7 +210,7 @@ func (ns *NetworkServer) matchDevice(ctx context.Context, up *ttnpb.UplinkMessag
 
 		switch {
 		case fCnt == match.Session.LastFCntUp:
-			trans := transmissionNumber(up, match.Device.RecentUplinks...)
+			trans := transmissionNumber(macPayloadBytes, match.Device.RecentUplinks...)
 			logger = logger.WithFields(log.Fields(
 				"transmission", trans,
 				"nb_trans", match.MACState.CurrentParameters.ADRNbTrans,
@@ -616,7 +614,7 @@ func (ns *NetworkServer) handleUplink(ctx context.Context, up *ttnpb.UplinkMessa
 			}
 			up.Settings.DataRateIndex = upDRIdx
 
-			nbTrans = transmissionNumber(up, stored.RecentUplinks...)
+			nbTrans = transmissionNumber(up.RawPayload[:len(up.RawPayload)-4], stored.RecentUplinks...)
 
 			stored.RecentUplinks = appendRecentUplink(stored.RecentUplinks, up, recentUplinkCount)
 			paths = append(paths, "recent_uplinks")
