@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { URL } from 'url'
 import Marshaler from '../util/marshaler'
 
 class Gateways {
   constructor (api, { defaultUserId, stackConfig, proxy = true }) {
     this._api = api
     this._defaultUserId = defaultUserId
+    this._stackConfig = stackConfig
   }
 
   // Retrieval
@@ -56,7 +58,17 @@ class Gateways {
 
   // Create
 
-  async create (userId = this._defaultUserId, gateway) {
+  async create (userId = this._defaultUserId, gateway, { setDefaults = true }) {
+    if (setDefaults) {
+      const Url = URL ? URL : window.URL
+      const { gateway_server_address } = gateway
+      const { gs } = this._stackConfig
+
+      if (!gateway_server_address && gs) {
+        gateway.gateway_server_address = new Url(gs).host
+      }
+    }
+
     const response = await this._api.GatewayRegistry.Create({
       routeParams: { 'collaborator.user_ids.user_id': userId },
     },
