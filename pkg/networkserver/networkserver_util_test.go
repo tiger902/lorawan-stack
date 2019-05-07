@@ -103,7 +103,7 @@ type MockDeviceRegistry struct {
 // GetByEUI calls GetByEUIFunc if set and returns nil, error otherwise.
 func (r MockDeviceRegistry) GetByEUI(ctx context.Context, joinEUI, devEUI types.EUI64, paths []string) (*ttnpb.EndDevice, error) {
 	if r.GetByEUIFunc == nil {
-		return nil, errors.New("GetByEUI not set")
+		return nil, errors.New("GetByEUI must not be called")
 	}
 	return r.GetByEUIFunc(ctx, joinEUI, devEUI, paths)
 }
@@ -111,7 +111,7 @@ func (r MockDeviceRegistry) GetByEUI(ctx context.Context, joinEUI, devEUI types.
 // GetByID calls GetByIDFunc if set and returns nil, error otherwise.
 func (r MockDeviceRegistry) GetByID(ctx context.Context, appID ttnpb.ApplicationIdentifiers, devID string, paths []string) (*ttnpb.EndDevice, error) {
 	if r.GetByIDFunc == nil {
-		return nil, errors.New("GetByID not set")
+		return nil, errors.New("GetByID must not be called")
 	}
 	return r.GetByIDFunc(ctx, appID, devID, paths)
 }
@@ -119,7 +119,7 @@ func (r MockDeviceRegistry) GetByID(ctx context.Context, appID ttnpb.Application
 // RangeByAddr calls RangeByAddrFunc if set and returns error otherwise.
 func (r MockDeviceRegistry) RangeByAddr(ctx context.Context, devAddr types.DevAddr, paths []string, f func(*ttnpb.EndDevice) bool) error {
 	if r.RangeByAddrFunc == nil {
-		return errors.New("RangeByAddr not set")
+		return errors.New("RangeByAddr must not be called")
 	}
 	return r.RangeByAddrFunc(ctx, devAddr, paths, f)
 }
@@ -127,7 +127,28 @@ func (r MockDeviceRegistry) RangeByAddr(ctx context.Context, devAddr types.DevAd
 // SetByID calls SetByIDFunc if set and returns nil, error otherwise.
 func (r MockDeviceRegistry) SetByID(ctx context.Context, appID ttnpb.ApplicationIdentifiers, devID string, paths []string, f func(*ttnpb.EndDevice) (*ttnpb.EndDevice, []string, error)) (*ttnpb.EndDevice, error) {
 	if r.SetByIDFunc == nil {
-		return nil, errors.New("SetByID not set")
+		return nil, errors.New("SetByID must not be called")
 	}
 	return r.SetByIDFunc(ctx, appID, devID, paths, f)
+}
+
+var _ ttnpb.NsJsServer = &MockNsJsServer{}
+
+type MockNsJsServer struct {
+	HandleJoinFunc  func(context.Context, *ttnpb.JoinRequest) (*ttnpb.JoinResponse, error)
+	GetNwkSKeysFunc func(context.Context, *ttnpb.SessionKeyRequest) (*ttnpb.NwkSKeysResponse, error)
+}
+
+func (js *MockNsJsServer) HandleJoin(ctx context.Context, req *ttnpb.JoinRequest) (*ttnpb.JoinResponse, error) {
+	if js.HandleJoinFunc == nil {
+		return nil, errors.New("HandleJoin must not be called")
+	}
+	return js.HandleJoinFunc(ctx, req)
+}
+
+func (js *MockNsJsServer) GetNwkSKeys(ctx context.Context, req *ttnpb.SessionKeyRequest) (*ttnpb.NwkSKeysResponse, error) {
+	if js.GetNwkSKeysFunc == nil {
+		return nil, errors.New("GetNwkSKeys must not be called")
+	}
+	return js.GetNwkSKeysFunc(ctx, req)
 }
